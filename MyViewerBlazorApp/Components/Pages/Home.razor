@@ -1,0 +1,21 @@
+﻿@page "/"
+@rendermode InteractiveServer
+
+@inject NavigationManager Navigator;
+
+<div style="width: 800px; height: 600px;">
+	<TXDocumentViewer BasePath=@Navigator.BaseUri
+					  @ref="_txdocumentviewer">
+	</TXDocumentViewer>
+</div>
+
+<button @onclick="LoadDocment">Load Document</button>
+
+@code {
+	private TXDocumentViewer? _txdocumentviewer;
+
+	private void LoadDocment()
+	{
+		_txdocumentviewer?.LoadDocumentFromFile("App_Data/signature.tx");
+	}
+}

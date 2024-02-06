@@ -1,0 +1,63 @@
+﻿@using Microsoft.AspNetCore.Components.Web
+@using Microsoft.JSInterop
+@using TXTextControl.Web.MVC.DocumentViewer
+@inject IJSRuntime JsRuntime
+@inject NavigationManager Navigator
+
+<script src="@(BasePath)TextControl/GetResource?Resource=minimized.tx-viewer.min.js"></script>
+<script src="@(BasePath)TextControl/GetResource?Resource=minimized.tx-viewer-component.min.js"></script>
+
+<tx-document-viewer
+	id="viewer1"
+	settings='{"documentData":"VGV4dCBDb250cm9s", "dock":1, "showThumbnailPane": true, "basePath":"@(BasePath?.TrimEnd('/'))"}'>
+</tx-document-viewer>
+
+@code
+{
+	[Parameter]
+	public string? BasePath { get; set; }
+
+	private DotNetObjectReference<TXDocumentViewer> DotNetReference => DotNetObjectReference.Create(this);
+	private IJSObjectReference? _txdocumentviewer;
+
+	protected override async Task OnAfterRenderAsync(bool firstRender)
+	{
+		if (firstRender)
+		{
+			_txdocumentviewer = await JsRuntime.InvokeAsync<IJSObjectReference>("import", "./scripts/txdocumentviewer.js");
+		}
+	}
+
+	[JSInvokable("LoadDocumentFromFile")]
+	public void LoadDocumentFromFile(string filename)
+	{
+		// check if the file exists
+		if (!System.IO.File.Exists(filename))
+		{
+			return;
+		}
+
+		// load the file into a byte array
+		byte[] bDocument = System.IO.File.ReadAllBytes(filename);
+
+		SignatureSettings signatureSettings = new SignatureSettings()
+		{
+			OwnerName = "John Doe",
+			RedirectUrlAfterSignature = this.BasePath + "Signature/SignDocument",
+			UniqueId = Guid.NewGuid().ToString(),
+			SignerName = "Jane Doe",
+			SignatureBoxes = new SignatureBox[]
+			{
+				new SignatureBox("txsign")
+				{
+					Style = SignatureBox.SignatureBoxStyle.Signature
+				}
+			},
+			ShowSignatureBar = true		
+		};
+
+		// invoke the JS function 'loadDocument' to load back to the modified document
+		_txdocumentviewer?.InvokeVoidAsync("loadDocument", new object[] { Convert.ToBase64String(bDocument), filename, BasePath, signatureSettings });
+	}
+
+}
